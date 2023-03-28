@@ -1,0 +1,11 @@
+#!/usr/bin/expect -f 
+set MPASS [lindex $argv 0];
+#set YPASS [lindex $argv 1];
+set timeout -1
+spawn /usr/local/bin/mwinit -s --aea
+match_max 100000
+expect -exact "PIN for cdeore: "
+send -- "$MPASS\r"
+#expect -exact "Press the button on your YubiKey (you might have to hold it for about 3-5 seconds before your token produces a one-time password)..."
+#send -- "$YPASS\r"
+expect eofi

@@ -1,0 +1,331 @@
+export BRAZIL_WORKSPACE_DEFAULT_LAYOUT=short
+
+export AUTO_TITLE_SCREENS="NO"
+
+export PROMPT="
+%{$fg[white]%}(%D %*) <%?> [%~] $program %{$fg[default]%}
+%{$fg[cyan]%}%m %#%{$fg[default]%} "
+
+export RPROMPT=
+
+# Set breakpoint() in Python to call pudb
+#export PYTHONBREAKPOINT="pudb.set_trace"
+
+export CORES=32
+export BRAZIL_PLATFORM_OVERRIDE=AL2_x86_64
+export DEVD=cdeoredevvm.aka.corp.amazon.com
+export DEVD2=dev-dsk-cdeore-2b-47a11d75.us-west-2.amazon.com
+export DEVD2012=dev-dsk-cdeore-2b-c4b4c395.us-west-2.amazon.com
+#export DEVD2012=cdeoredevvm2012.aka.corp.amazon.com
+
+#export LD_LIBRARY_PATH='/home/cdeore/workplace/VantaDataplane/build/LookoutBlackWatch/LookoutBlackWatch-1.0/AL2_x86_64/DEV.STD.PTHREAD/build/private/tmp/brazil-path/testrun.runtimefarm/lib'
+
+export SSLPXYCONF=/workplace/cdeore/VantaSSLProxy/src/VantaSSLProxy/build/private/install/share/examples/sslproxy/my-sslproxy.conf
+
+#VantaSSLProxy
+alias sslpxy='sudo LD_LIBRARY_PATH=$(brazil-bootstrap)/lib ./build/bin/sslproxy -D'
+alias sslpxycmd='sudo LD_LIBRARY_PATH=$(brazil-bootstrap)/lib ./build/bin/sslproxy -f $SSLPXYCONF'
+alias sslpxycmd2='sudo LD_LIBRARY_PATH=$(brazil-bootstrap)/lib ./build/bin/sslproxy -D http 127.0.0.1 8081 up:8000 -k /workplace/cdeore/certs/CS-Cert.key -c /workplace/cdeore/certs/CS-Cert.crt -P'
+
+#BlackwatchTestFramework
+alias tfw='pushd /workplace/cdeore/blackwatch/src/LookoutBlackWatchTestFramework'
+alias tfwr='timedcmd brazil-runtime-exec sudo run_pytest.sh blackwatchtestframework/tests/counter_mode_test.py::CounterModeTest::test_off_mode --bwapollo' #run a single regular BW test
+alias tfwrt='timedcmd brazil-runtime-exec sudo run_pytest.sh blackwatchtestframework/tests/geneve_tls_acl_through_sfe.py::GeneveTLSACLThrough1SFE3SlotTest::test_packets_are_forwarded_to_tls --bwapollo' #run a single vanta test
+alias tfwrv='timedcmd brazil-runtime-exec sudo run_pytest.sh blackwatchtestframework/tests/geneve_network_acl_through_sfe.py::GeneveNetworkACLThroughSFETest::test_packets_are_forwarded_to_sfe --bwapollo' #run a single vanta test
+alias tfwra='timedcmd brazil-runtime-exec sudo run_pytest.sh blackwatchtestframework/tests/ --bwapollo' #run all tests one after another
+alias tfwdeactivate='timedcmd sudo /apollo/bin/runCommand -e LookoutBlackWatch -a Deactivate && ps -AF | grep blackwatch'
+alias tfwactivate='timedcmd sudo /apollo/bin/runCommand -e LookoutBlackWatch -a Activate'
+
+_lbwenvbuild(){
+	#pushd /workplace/cdeore/VantaDataplane/src/IntelDPDK
+	#timedcmd brazil-build release
+
+        pushd /workplace/cdeore/VantaDataplane/src/LookoutBlackWatchLauncher
+	timedcmd brazil-recursive-cmd --allPackages brazil-build release
+        #timedcmd brazil-recursive-cmd brazil-build release
+
+	pushd /workplace/cdeore/VantaDataplane/src/LookoutBlackWatch
+	#timedcmd brazil-recursive-cmd brazil-build release 
+
+	if [ $? -eq 0 ]; then 
+		brazil ws env attach --alias LookoutBlackWatch --package IntelDPDK --package LookoutBlackWatchLauncher --package LookoutBlackWatch # Brazil CLI 2.0
+	fi
+
+	if [ $? -eq 0 ]; then 
+		brazil ws env update
+	fi
+
+	popd
+}
+
+lbwenvbuild(){
+	timedcmd _lbwenvbuild
+}
+
+_synproxyrebuild(){
+        pushd /workplace/cdeore/LookoutBlackWatchSyncookieModule/src/BlackWatchSynproxyAgent
+	bwssync
+       	brazil-recursive-cmd --allPackages brazil-build release
+	#brazil ws env detach --alias BlackWatchSynproxyAgent  
+	brazil ws env attach --clean --alias BlackWatchSynproxyAgent --package BlackWatchSynproxyAgent --package LookoutBlackWatchSyncookieModule
+        brazil ws env update
+}
+
+synproxyrebuild(){
+	timedcmd _synproxyrebuild
+}
+
+tfwrebuild2() {
+	pushd /workplace/cdeore/blackwatch-tests/src/LookoutBlackWatchTestFramework
+
+        srm /workplace/cdeore/blackwatch-tests/build/LookoutBlackWatchTestFramework/LookoutBlackWatchTestFramework-1.0/AL2_x86_64/DEV.STD.PTHREAD/build
+	srm /workplace/cdeore/blackwatch/env
+
+	if [ $? -eq 0 ]; then 
+		bws clean 	
+	fi
+
+	if [ $? -eq 0 ]; then 
+		bb clean 
+	fi
+
+	if [ $? -eq 0 ]; then 
+		timedcmd brazil-recursive-cmd brazil-build release 
+	fi
+	
+	if [ $? -eq 0 ]; then 
+		./setup/install_dependency_on_amazon_linux 
+	fi
+	
+	if [ $? -eq 0 ]; then 
+		ln -sf `brazil-bootstrap --environmentType runtime`
+	fi
+
+	if [ $? -eq 0 ]; then 
+        	ln -sf `brazil-bootstrap --environmentType test-runtime` 
+	fi
+	
+	if [ $? -eq 0 ]; then 
+		tfwdeactivate 
+	fi
+
+	echo $(brazil-path testrun.runtimefarm)/bin/python | pbcopy
+
+	popd
+}
+
+tfwrebuild() {
+        pushd /workplace/cdeore/blackwatch-tests/src/LookoutBlackWatchTestFramework
+
+        srm /workplace/cdeore/blackwatch-tests/build/LookoutBlackWatchTestFramework/LookoutBlackWatchTestFramework-1.0/AL2_x86_64/DEV.STD.PTHREAD/build
+        srm /workplace/cdeore/blackwatch-tests/env
+
+        if [ $? -eq 0 ]; then
+                bws clean
+        fi
+
+        if [ $? -eq 0 ]; then
+                bb clean
+        fi
+
+        if [ $? -eq 0 ]; then
+                timedcmd brazil-recursive-cmd brazil-build release
+        fi
+
+        if [ $? -eq 0 ]; then
+                ./setup/install_dependency_on_amazon_linux
+        fi
+
+        if [ $? -eq 0 ]; then
+                ln -sf `brazil-bootstrap --environmentType runtime`
+        fi
+
+        if [ $? -eq 0 ]; then
+                ln -sf `brazil-bootstrap --environmentType test-runtime`
+        fi
+
+        if [ $? -eq 0 ]; then
+                tfwdeactivate
+        fi
+	
+	echo $(brazil-path testrun.runtimefarm)/bin/python | pbcopy
+
+        popd
+}
+
+
+
+_tfw-lbwenv-rebuild(){
+	lbwenvbuild 
+	if [ $? -eq 0 ]; then
+		tfwrebuild
+	fi
+}
+	
+tfw-lbwenv-rebuild(){
+	timedcmd _tfw-lbwenv-rebuild
+}
+
+set-title() {
+    echo -e "\e]0;$*\007"
+}
+
+ssh() {
+    set-title $*;
+    /usr/bin/ssh -2 $*;
+    set-title $HOST;
+}
+
+printdatetime() {
+    echo $1: `date`
+}
+
+srch() {
+    length=$(($# - 1))
+	    
+    if [[ $length>0 ]]; then
+        names=${@:1:$length}  #all args but last
+        path_to_search_in="${@: -1}" #last arguement
+    else
+        names=$@ #single arg
+        path_to_search_in="." #current dir
+    fi
+
+    echo "find $path_to_search_in -name $names -exec ls -l {} +"
+    find $path_to_search_in -name $names -exec ls -l {} +
+}
+
+timedcmd() {
+    local Epoch=`date`;
+    
+    $@; #Run the command 
+
+    echo "";
+    echo "Finished running  : '$@'";
+    echo "Command start time: ${Epoch}";
+    echo "Command end time  : `date`";
+}
+
+function kj () {
+    local kill_list="$(jobs)"
+    
+    if [ -n "$kill_list" ]; then
+        # this runs the shell builtin kill, not unix kill, otherwise jobspecs cannot be killed
+        # the `$@` list must not be quoted to allow one to pass any number parameters into the kill
+        # the kill list must not be quoted to allow the shell builtin kill to recognise them as jobspec parameters
+        kill $@ $(sed -r 's/\[([[:digit:]]+)\].*/%\1/gp' <<< "$kill_list" | tr '\n' ' ')
+    else
+        echo "No jobs to kill"
+	return 0
+    fi
+}
+
+gda() {
+   git diff --name-only "$@" | while read filename; do
+      (&>/dev/null git difftool "$@" --no-prompt "$filename" &)
+   done
+}
+
+alias x='exit'
+alias c='clear'
+alias p='pwd'
+alias f='tree --prune -ahfD -P'
+alias i='mwinit -s -o'
+alias in='kinit && mwinit -s -o'
+alias iv=' printdatetime "        Current Time"; ssh-keygen -L -f ~/.ssh/id_rsa-cert.pub | grep Valid'
+alias minfo='cat /etc/hardware.amazon.stanza'
+alias t='tail -f'
+
+alias python=python3
+
+alias src='pushd /workplace/cdeore/VantaDataplane/src/LookoutBlackWatch/'
+
+alias aws='/usr/local/bin/aws'
+
+alias csd='ssh $DEVD'
+alias csdg='python3 ./dcv-cdd.py connect $DEVD'
+alias csdin='ssh -t $DEVD echo Authenticate yourself on the cloud desktop && kinit && mwinit -s -o && clear'
+alias scpcd='tmpfn() { echo scp "$1" cdeore@$DEVD:"$2"; scp "$1" cdeore@$DEVD:"$2";  unset -f tmpfn; }; tmpfn'
+
+alias csd2='ssh $DEVD2'
+alias csdg2='python3 ./dcv-cdd.py connect $DEVD2'
+alias csdin2='ssh -t $DEV2 echo Authenticate yourself on the cloud desktop && kinit && mwinit -s -o && clear'
+alias scpcd2='tmpfn2() { echo scp "$1" cdeore@$DEVD2:"$2"; scp "$1" cdeore@$DEVD2:"$2";  unset -f tmpfn2; }; tmpfn2'
+
+alias csd2='ssh $DEVD2012'
+alias csdg2='python3 ./dcv-cdd.py connect $DEVD2012'
+alias csdin2='ssh -t $DEV2012 echo Authenticate yourself on the cloud desktop && kinit && mwinit -s -o && clear'
+alias scpcd2='tmpfn2() { echo scp "$1" cdeore@$DEVD2012:"$2"; scp "$1" cdeore@$DEVD2012:"$2";  unset -f tmpfn2; }; tmpfn2'
+
+alias ezsh='vi ~/.zshrc && source ~/.zshrc'
+alias l='ls -althFG'
+alias p3='python3'
+alias gdiff='git difftool -y'
+alias gd='gda'
+alias ga='git add'
+alias gm='git commit -m'
+alias gam='git commit --amend --no-edit'
+alias gitamend='git commit --amend --no-edit'
+alias gl='git log -n'
+alias gs='git status'
+alias gb='git branch'
+alias gcr='Git switch -c'
+alias gsw='git switch'
+alias gp='git pull --rebase'
+alias gst='git stash'
+alias gstl='git stash list'
+
+alias pse='ps -axjf | grep '
+alias kl='sudo kill -9'
+alias e=emacs
+alias sl=subl
+alias srm='sudo rm -rf '
+
+alias src='pushd /home/cdeore/workplace/VantaDataplane/src/LookoutBlackWatch/'
+
+alias b='brazil'
+alias bws='brazil ws'
+alias bwscr='bws create -n'
+alias bwscreate='bws create -n'
+alias bwsuse='bws use -p'
+alias bwsls='bws show'
+alias bwsdel='bws delete --root'
+alias bwsrm='bws delete --root'
+alias bwsrmp='bws remove -p'
+alias bwspl='bws use -platform AL2_x86_64'
+alias bwscl='bws clean'
+alias bcl='bwscl'
+alias bwssync='bws sync --md; bws sync'
+alias bb='timedcmd brazil-build' # -j $CORES'
+alias br='timedcmd brazil-recursive-cmd brazil-build release' # -j $CORES'
+#alias br='printdatetime "Build start time" > /tmp/tmpdtm; brazil-build release -j $CORES; cat /tmp/tmpdtm; printdatetime "Build end time  "; rm /tmp/tmpdtm;'
+
+alias bba='timedcmd brazil-build apollo-pkg' # -j $CORES'
+alias bre='timedcmd brazil-runtime-exec' # -j $CORES'
+#alias brc='timedcmd brazil-recursive-cmd' # -j $CORES'
+#alias bbr='timedcmd brazil-recursive-cmd brazil-build'
+alias bball='br --allPackages'
+alias bbb='timedcmd brazil-recursive-cmd --allPackages brazil-build'
+alias bbra='bbr apollo-pkg'
+
+alias bwsattach='timedcmd brazil workspace env attach --alias'
+alias bwsattachlbw='timedcmd brazil workspace env attach --alias LookoutBlackWatch; timedcmd brazil ws env update'
+
+alias bwtest=tools/standalone/run_test-runtime_unit_tests.sh
+export bwtest=tools/standalone/run_test-runtime_unit_tests.sh
+
+alias pbcopy='xclip -selection clipboard'
+alias pbpaste='xclip -selection clipboard -o'
+
+export PATH=$HOME/.toolbox/bin:/opt/slickedit/bin:$PATH
+
+autoload bashcompinit && bashcompinit
+autoload -Uz compinit && compinit
+complete -C '/usr/local/bin/aws_completer' aws
+
+# Enable autocompletion for mechanic.
+[ -f "$HOME/.local/share/mechanic/complete.zsh" ] && source "$HOME/.local/share/mechanic/complete.zsh"
+
+
+#"${HOME}"/bin/k5renewer
+ 

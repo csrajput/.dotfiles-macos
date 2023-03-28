@@ -1,0 +1,14 @@
+[user]
+	name = Charansing Deore
+	email = cdeore@amazon.com
+[diff]
+	tool = bc
+[merge]
+	tool = bc
+[mergetool "bc"]
+	trustExitCode = true
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true

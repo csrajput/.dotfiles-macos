@@ -1,0 +1,17 @@
+#!/usr/bin/expect -f 
+set DEVD  [lindex $argv 0];
+set APASS [lindex $argv 1];
+set MPASS [lindex $argv 2];
+set YPASS [lindex $argv 3];
+
+set timeout -1
+spawn ssh -t $DEVD "kinit; mwinit -s --aea -o" 
+match_max 100000
+expect -exact "Password for cdeore@ANT.AMAZON.COM: "
+send -- "$APASS\r"
+expect -exact "PIN for cdeore: "
+send -- "$MPASS\r"
+expect -exact "Press the button on your YubiKey (you might have to hold it for about 3-5 seconds before your token produces a one-time password)..."
+send -- "$YPASS\r"
+expect eofi
+
